@@ -1,149 +1,261 @@
-# 7/12 – Property as Token
+# 7/12 — Property as Token 🏢
 
-A blockchain-powered fractional real estate investment platform that enables investors to own tokenized shares of premium properties starting from ₹5,000.
+> Fractional real estate investment platform powered by Solana blockchain
 
-## Overview
+A hackathon project that tokenizes real estate properties into tradable digital tokens. Investors can own fractional shares of premium properties starting from ₹5,000, earn rental income, and trade tokens on a secondary marketplace.
 
-7/12 democratizes real estate investing by converting property ownership into tradable digital tokens. Named after the "7/12 Extract" - the official land ownership document in India - the platform bridges traditional real estate with modern blockchain technology.
+---
 
-## Features
+## 🎯 What It Does
 
-### For Investors
-- **Fractional Ownership** - Own shares of premium properties with investments as low as ₹5,000
-- **Portfolio Dashboard** - Track holdings, returns, and transaction history
-- **Property Marketplace** - Browse verified properties with detailed analytics
-- **Instant Liquidity** - Trade tokens on secondary marketplace
-- **Governance Voting** - Participate in property decisions based on token holdings
+- **Tokenize Properties** — Each property is represented as a Solana smart contract with a fixed token supply
+- **Fractional Ownership** — Buy as little as 1 token to own a fraction of a premium property
+- **Earn Rental Income** — Token holders receive proportional rental income distributions
+- **Trade Tokens** — Buy and sell tokens on the secondary marketplace
+- **Governance Voting** — Vote on property decisions based on token holdings
+- **Phantom Wallet** — Connect your Solana wallet for crypto purchases and on-chain ownership
 
-### For Property Sellers
-- **Property Tokenization** - Convert properties into tradable digital tokens
-- **Seller Dashboard** - Monitor token sales and investor activity
-- **6-Step Onboarding** - Guided process for property verification and listing
+---
 
-### For Administrators
-- **KYC Management** - Review and approve investor verifications
-- **Property Approvals** - Verify and approve property listings
-- **Risk Monitoring** - Flag and manage suspicious activities
-- **User Management** - Oversee platform users and permissions
+## 🏗️ Tech Stack
 
-## Pages
+| Layer | Technology |
+|---|---|
+| Frontend | Next.js 15, Tailwind CSS, shadcn/ui |
+| Backend | Python FastAPI |
+| Database | Firebase Firestore |
+| Blockchain | Solana + Anchor (Rust) |
+| Wallet | Phantom |
+| Payments | Mock eMandate/UPI simulation |
 
-| Route | Description |
-|-------|-------------|
-| `/` | Landing page with hero, features, and FAQ |
-| `/marketplace` | Property listings with search and filters |
-| `/properties/[id]` | Property details, ownership info, documents |
-| `/dashboard` | Investor dashboard with portfolio overview |
-| `/portfolio` | Detailed holdings and income history |
-| `/governance` | Voting on property proposals |
-| `/seller` | Seller dashboard for property management |
-| `/seller/onboard` | Multi-step property onboarding form |
-| `/admin` | Admin panel for platform management |
+---
 
-## Tech Stack
+## 📁 Project Structure
 
-- **Framework**: Next.js 15 (App Router)
-- **Styling**: Tailwind CSS v4
-- **UI Components**: shadcn/ui
-- **Animations**: CSS animations with Intersection Observer
-- **Charts**: Recharts
-- **Icons**: Lucide React
+```
+cRESENDO/
+├── property_tokenisation-main/    # Next.js Frontend
+│   └── property_tokenisation-main/
+│       ├── app/                   # Pages (marketplace, dashboard, portfolio...)
+│       ├── components/            # UI components
+│       ├── lib/
+│       │   ├── api-client.ts      # Backend API client
+│       │   ├── auth-context.tsx   # Auth state management
+│       │   └── wallet-context.tsx # Phantom wallet integration
+│       └── .env.local             # NEXT_PUBLIC_API_URL
+│
+├── Backend/                       # FastAPI Backend
+│   ├── main.py                    # App entry point
+│   ├── config.py                  # Firebase + env config
+│   ├── routes/                    # API endpoints
+│   │   ├── auth.py                # Register, login, wallet link
+│   │   ├── properties.py          # Property listings
+│   │   ├── tokens.py              # Buy/sell tokens
+│   │   ├── portfolio.py           # Holdings & transactions
+│   │   ├── governance.py          # Proposals & voting
+│   │   ├── payments.py            # Mock payment simulation
+│   │   ├── seller.py              # Seller dashboard
+│   │   ├── admin.py               # Admin panel
+│   │   └── wallet.py              # Solana wallet integration
+│   ├── services/
+│   │   ├── auth_service.py        # JWT + bcrypt
+│   │   ├── solana_service.py      # Blockchain interaction
+│   │   └── payment_service.py     # Mock payment simulator
+│   └── .env.example               # Environment template
+│
+└── property_token/                # Anchor Smart Contract
+    └── programs/property_token/
+        └── src/lib.rs             # Rust smart contract
+```
 
-## Getting Started
+---
+
+## 🚀 Quick Start
 
 ### Prerequisites
 - Node.js 18+
-- pnpm (recommended) or npm
+- Python 3.11+
+- Rust + Cargo
+- Solana CLI
+- Anchor CLI
+- Phantom browser extension
 
-### Installation
+### 1. Clone & Setup
 
 ```bash
-# Clone the repository
-git clone <repository-url>
+git clone https://github.com/NHR-09/property_tokenisation.git
+cd property_tokenisation
+```
 
-# Install dependencies
-pnpm install
+### 2. Firebase Setup
+1. Go to https://console.firebase.google.com → Create project
+2. Enable **Firestore Database** (test mode)
+3. Go to Project Settings → Service Accounts → Generate new private key
+4. Copy credentials to `Backend/.env`
 
-# Run development server
-pnpm dev
-**Project Structure**
-├── app/
-│   ├── page.tsx              # Landing page
-│   ├── marketplace/          # Property marketplace
-│   ├── properties/[id]/      # Property details
-│   ├── dashboard/            # Investor dashboard
-│   ├── portfolio/            # Portfolio management
-│   ├── governance/           # Voting/governance
-│   ├── seller/               # Seller dashboard & onboarding
-│   └── admin/                # Admin dashboard
-├── components/
-│   ├── ui/                   # shadcn/ui components
-│   ├── navbar.tsx            # Navigation bar
-│   ├── footer.tsx            # Site footer
-│   ├── property-card.tsx     # Property listing card
-│   ├── app-sidebar.tsx       # Dashboard sidebar
-│   └── ...                   # Other components
-├── lib/
-│   ├── utils.ts              # Utility functions
-│   └── mock-data.ts          # Sample property data
-└── public/                   # Static assets
-## Design System
+### 3. Backend Setup
 
-### Colors
+```bash
+cd Backend
+python -m venv venv
+venv\Scripts\activate          # Windows
+pip install -r requirements.txt
+copy .env.example .env         # Fill in Firebase credentials
+uvicorn main:app --reload --port 8000
+```
 
-- **Primary**: Slate/Navy (`#0f172a`)
-- **Accent**: Blue (`#3b82f6`)
-- **Success**: Emerald (`#10b981`)
-- **Background**: Off-white (`#f8fafc`)
+Seed the database with 6 properties:
+```bash
+curl -X POST http://localhost:8000/api/v1/seed
+```
 
+### 4. Frontend Setup
 
-### Typography
+```bash
+cd property_tokenisation-main/property_tokenisation-main
+npm install
+# .env.local already has NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
+npm run dev
+```
 
-- **Font**: Geist Sans
-- **Headings**: Bold, tight letter-spacing
-- **Body**: Regular, relaxed line-height
+### 5. Solana Smart Contract
 
+```bash
+# Start local validator (keep running)
+solana-test-validator
 
-### Animations
+# In another terminal
+cd property_token
+cargo-build-sbf --manifest-path programs/property_token/Cargo.toml
+solana program deploy target/deploy/property_token.so --keypair C:\solana\id.json --url localhost
+```
 
-- Smooth scroll-triggered animations
-- Cubic-bezier easing (0.22, 1, 0.36, 1)
-- Staggered delays for list items
-- Hover lift effects on cards
+---
 
+## 🔄 System Flow
 
-## Key Concepts
+```
+User registers/logs in
+    ↓
+Connects Phantom wallet (auto-linked to account in Firebase)
+    ↓
+Browses marketplace (real data from Firebase)
+    ↓
+Selects property → chooses token quantity
+    ↓
+Mock payment simulation (eMandate/UPI)
+    ↓
+Backend confirms → calls Solana service
+    ↓
+Ownership PDA derived on-chain
+    ↓
+Firebase ownership record updated
+    ↓
+Portfolio dashboard shows real holdings
+```
 
-### Tokenization
+---
 
-Properties are divided into tokens representing fractional ownership. Each token:
+## 💳 Mock Payment Flow
 
-- Represents a proportional share of the property
-- Entitles holder to rental income distributions
-- Grants voting rights on property decisions
-- Can be traded on the secondary marketplace
+```
+POST /api/v1/payments/create-order   → order_id
+POST /api/v1/payments/simulate/{id}  → payment_id
+POST /api/v1/tokens/purchase         → blockchain tx + Firebase update
+```
 
+---
 
-### Investment Process
+## 🔗 Smart Contract
 
-1. Complete KYC verification
-2. Browse available properties
-3. Purchase tokens (min ₹5,000)
-4. Receive rental income monthly
-5. Trade or hold tokens
+**Program ID:** `EHb76xADX6VJGAm1sBXbEAx6bDppvpnvGCKyhaJWMd8N`
 
+**Instructions:**
+- `register_property` — Create property token supply on-chain
+- `buy_tokens` — Transfer SOL to escrow, record ownership PDA
+- `sell_tokens` — Return tokens to available pool
 
-### Property Onboarding
+**PDAs:**
+- Property: `[b"property", property_id]`
+- Ownership: `[b"ownership", wallet_pubkey, property_id]`
 
-1. Basic property details
-2. Document upload (7/12 extract, title deed, etc.)
-3. Property valuation
-4. Token configuration
-5. Legal agreement signing
-6. Final review and submission
+---
 
-This README covers the full scope of your platform including all pages, features, tech stack, and project structure. Would you like me to add this as an actual README.md file to your project?
+## 📡 API Endpoints
 
-## License
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | `/api/v1/auth/register` | Register user |
+| POST | `/api/v1/auth/login` | Login, get JWT |
+| GET | `/api/v1/auth/me` | Get user profile |
+| GET | `/api/v1/properties` | List properties |
+| GET | `/api/v1/properties/{id}` | Property detail |
+| POST | `/api/v1/payments/create-order` | Create payment order |
+| POST | `/api/v1/payments/simulate/{id}` | Simulate payment |
+| POST | `/api/v1/tokens/purchase` | Buy tokens |
+| POST | `/api/v1/tokens/sell` | Sell tokens |
+| GET | `/api/v1/portfolio/holdings` | User holdings |
+| GET | `/api/v1/portfolio/transactions` | Transaction history |
+| GET | `/api/v1/governance/proposals` | List proposals |
+| POST | `/api/v1/governance/vote` | Cast vote |
+| GET | `/api/v1/wallet/balance/{address}` | SOL balance |
+| POST | `/api/v1/wallet/link` | Link Phantom wallet |
+| GET | `/api/v1/admin/stats` | Platform stats |
 
-Private - All rights reserved
+Full interactive docs: **http://localhost:8000/docs**
+
+---
+
+## 🌐 Pages
+
+| Route | Description |
+|---|---|
+| `/` | Landing page |
+| `/auth` | Login / Register |
+| `/marketplace` | Browse tokenized properties |
+| `/properties/[id]` | Property details + buy tokens |
+| `/dashboard` | Investor dashboard |
+| `/portfolio` | Holdings & income history |
+| `/governance` | Vote on proposals |
+| `/seller` | Seller dashboard |
+| `/seller/onboard` | List a new property |
+| `/admin` | Admin panel |
+
+---
+
+## 🔐 Environment Variables
+
+```env
+# Firebase
+FIREBASE_PROJECT_ID=
+FIREBASE_PRIVATE_KEY_ID=
+FIREBASE_PRIVATE_KEY=
+FIREBASE_CLIENT_EMAIL=
+FIREBASE_CLIENT_ID=
+
+# JWT
+JWT_SECRET=your-secret-key
+JWT_ALGORITHM=HS256
+JWT_EXPIRE_MINUTES=10080
+
+# Solana
+SOLANA_RPC_URL=http://localhost:8899
+SOLANA_PROGRAM_ID=EHb76xADX6VJGAm1sBXbEAx6bDppvpnvGCKyhaJWMd8N
+PLATFORM_WALLET_KEYPAIR_PATH=C:\solana\id.json
+
+# App
+FRONTEND_URL=http://localhost:3000
+PLATFORM_FEE_PERCENT=1.0
+```
+
+---
+
+## 👥 Team
+
+Built for hackathon — **cRESENDO**
+
+---
+
+## 📄 License
+
+Private — All rights reserved

@@ -33,11 +33,24 @@ export function SolanaWalletProvider({ children }: { children: ReactNode }) {
 
   // Restore connection on page load if already connected
   useEffect(() => {
-    // Phantom injects after a short delay — wait for it
-    const init = () => {
+    const init = async () => {
       const phantom = getPhantom()
-      if (!phantom) return
+      if (!phantom?.isPhantom) return
 
+      // Try silent reconnect first (only if user previously connected)
+      try {
+        const resp = await phantom.connect({ onlyIfTrusted: true })
+        if (resp?.publicKey) {
+          const addr = resp.publicKey.toString()
+          setWalletAddress(addr)
+          setConnected(true)
+          fetchBalance(addr)
+        }
+      } catch {
+        // Not previously connected — that's fine, don't show error
+      }
+
+      // Also check if already connected via isConnected flag
       if (phantom.isConnected && phantom.publicKey) {
         const addr = phantom.publicKey.toString()
         setWalletAddress(addr)
@@ -65,9 +78,9 @@ export function SolanaWalletProvider({ children }: { children: ReactNode }) {
       })
     }
 
-    // Try immediately, then retry after 500ms for slow injection
+    // Try immediately and after 800ms for slow Phantom injection
     init()
-    const timer = setTimeout(init, 500)
+    const timer = setTimeout(init, 800)
     return () => clearTimeout(timer)
   }, [])
 

@@ -1,0 +1,21 @@
+[toolchain]
+package_manager = "yarn"
+
+[features]
+resolution = true
+skip-lint = false
+
+[programs.devnet]
+property_token = "EHb76xADX6VJGAm1sBXbEAx6bDppvpnvGCKyhaJWMd8N"
+
+[programs.localnet]
+property_token = "EHb76xADX6VJGAm1sBXbEAx6bDppvpnvGCKyhaJWMd8N"
+
+[provider]
+cluster = "devnet"
+wallet = "C:\\solana\\id.json"
+
+[scripts]
+test = "cargo test"
+
+[hooks]
