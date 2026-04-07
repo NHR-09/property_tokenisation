@@ -250,9 +250,9 @@ PLATFORM_FEE_PERCENT=1.0
 
 ---
 
-## 👥 Team
+## 👥 Team KIRMADA
 
-Built for hackathon — **cRESENDO**
+Built for hackathon — **CRESENDO**
 
 ---
 
