@@ -36,6 +36,7 @@ import {
 } from "lucide-react"
 import { api } from "@/lib/api-client"
 import type { Property } from "@/lib/api-client"
+import { usePhantomWallet } from "@/lib/wallet-context"
 
 const propertyDetails = {
   description: "Premium Grade-A commercial complex featuring modern architecture, high-speed elevators, 24/7 security, and ample parking. Currently leased to top IT companies with long-term contracts ensuring stable rental income.",
@@ -84,6 +85,7 @@ export default function PropertyDetailsPage({ params }: { params: Promise<{ id: 
   const [buying, setBuying] = useState(false)
   const [buySuccess, setBuySuccess] = useState(false)
   const [buyError, setBuyError] = useState("")
+  const { walletAddress, connected } = usePhantomWallet()
 
   useEffect(() => {
     api.properties.get(id)
@@ -106,12 +108,13 @@ export default function PropertyDetailsPage({ params }: { params: Promise<{ id: 
       const order = await api.payments.createOrder(id, buyQuantity)
       // Step 2: simulate payment
       const payment = await api.payments.simulate(order.order_id)
-      // Step 3: confirm purchase
+      // Step 3: confirm purchase — use connected wallet if available
       await api.tokens.purchase({
         property_id: id,
         quantity: buyQuantity,
-        payment_method: "fiat",
-        razorpay_payment_id: payment.payment_id,
+        payment_method: connected && walletAddress ? "crypto" : "fiat",
+        wallet_address: walletAddress ?? undefined,
+        razorpay_payment_id: connected ? undefined : payment.payment_id,
       })
       setBuySuccess(true)
     } catch (err: any) {

@@ -52,7 +52,7 @@ export const auth = {
     }),
 
   linkWallet: (user_id: string, wallet_address: string, signature: string, message: string) =>
-    request(`/auth/wallet/link/${user_id}`, {
+    request(`/wallet/link`, {
       method: "POST",
       body: JSON.stringify({ wallet_address, signature, message }),
     }),

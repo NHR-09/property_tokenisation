@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -24,7 +24,10 @@ import {
   Wallet,
   TrendingUp,
   Bell,
+  LogOut,
 } from "lucide-react"
+import { useAuth } from "@/lib/auth-context"
+import { usePhantomWallet } from "@/lib/wallet-context"
 
 interface NavItem {
   title: string
@@ -122,6 +125,15 @@ interface AppSidebarProps {
 export function AppSidebar({ variant = "investor" }: AppSidebarProps) {
   const [collapsed, setCollapsed] = useState(false)
   const pathname = usePathname()
+  const router = useRouter()
+  const { user, logout } = useAuth()
+  const { disconnectWallet } = usePhantomWallet()
+
+  const handleLogout = () => {
+    logout()
+    disconnectWallet()
+    router.push("/")
+  }
 
   const navigation = variant === "admin" 
     ? adminNavigation 
@@ -163,7 +175,7 @@ export function AppSidebar({ variant = "investor" }: AppSidebarProps) {
       </div>
 
       {/* Navigation */}
-      <ScrollArea className="h-[calc(100vh-4rem)]">
+      <ScrollArea className="h-[calc(100vh-4rem-64px)]">
         <nav className="p-3 space-y-6">
           {navigation.map((section) => (
             <div key={section.title}>
@@ -210,6 +222,26 @@ export function AppSidebar({ variant = "investor" }: AppSidebarProps) {
           ))}
         </nav>
       </ScrollArea>
+
+      {/* User + Logout */}
+      <div className="absolute bottom-0 left-0 right-0 border-t border-border p-3">
+        {!collapsed && user && (
+          <div className="px-3 py-2 mb-1">
+            <p className="text-sm font-medium truncate">{user.name}</p>
+            <p className="text-xs text-muted-foreground capitalize">{user.role}</p>
+          </div>
+        )}
+        <button
+          onClick={handleLogout}
+          className={cn(
+            "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium w-full text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors",
+            collapsed && "justify-center px-2"
+          )}
+        >
+          <LogOut className="h-5 w-5 flex-shrink-0" />
+          {!collapsed && <span>Logout</span>}
+        </button>
+      </div>
     </aside>
   )
 }

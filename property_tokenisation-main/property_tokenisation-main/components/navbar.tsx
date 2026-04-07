@@ -4,19 +4,30 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Menu, X } from "lucide-react"
+import { Menu, X, Wallet } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
+import { usePhantomWallet } from "@/lib/wallet-context"
 
 export function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [mounted, setMounted] = useState(false)
   const { user, logout } = useAuth()
+  const { connected, walletAddress, connectWallet, disconnectWallet, connecting } = usePhantomWallet()
   const router = useRouter()
+
+  // Prevent hydration mismatch
+  useEffect(() => { setMounted(true) }, [])
 
   const handleLogout = () => {
     logout()
+    disconnectWallet()
     router.push("/")
   }
+
+  const shortAddress = walletAddress
+    ? `${walletAddress.slice(0, 4)}...${walletAddress.slice(-4)}`
+    : null
 
   useEffect(() => {
     const handleScroll = () => {
@@ -78,6 +89,20 @@ export function Navbar() {
           </div>
 
           <div className="hidden lg:flex items-center gap-3">
+            {/* Wallet Button - only render after mount to avoid hydration issues */}
+            {mounted && (
+              connected ? (
+                <Button variant="outline" size="sm" className="text-xs font-mono" onClick={disconnectWallet}>
+                  <div className="h-2 w-2 rounded-full bg-green-500 mr-2" />
+                  {shortAddress}
+                </Button>
+              ) : (
+                <Button variant="outline" size="sm" onClick={connectWallet} disabled={connecting}>
+                  <Wallet className="mr-2 h-4 w-4" />
+                  {connecting ? "Connecting..." : "Connect Wallet"}
+                </Button>
+              )
+            )}
             {user ? (
               <>
                 <Button variant="ghost" className="text-sm" asChild>

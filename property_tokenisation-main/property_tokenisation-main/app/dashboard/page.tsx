@@ -29,17 +29,30 @@ import {
 import Link from "next/link"
 import { api } from "@/lib/api-client"
 import type { Holding, Transaction, Property } from "@/lib/api-client"
+import { usePhantomWallet } from "@/lib/wallet-context"
+import { useAuth } from "@/lib/auth-context"
 
 export default function DashboardPage() {
   const [portfolioHoldings, setPortfolioHoldings] = useState<Holding[]>([])
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [properties, setProperties] = useState<Property[]>([])
+  const { connected, walletAddress, solBalance, connectWallet, disconnectWallet, connecting, linkWalletToAccount } = usePhantomWallet()
+  const { user, updateWalletAddress } = useAuth()
 
   useEffect(() => {
     api.portfolio.holdings().then(setPortfolioHoldings).catch(() => {})
     api.portfolio.transactions().then(setTransactions).catch(() => {})
     api.properties.list().then(setProperties).catch(() => {})
   }, [])
+
+  // Auto-link wallet to account when connected & save to Firebase
+  useEffect(() => {
+    if (connected && walletAddress && user?.user_id) {
+      linkWalletToAccount(user.user_id)
+        .then(() => updateWalletAddress(walletAddress))
+        .catch(() => {})
+    }
+  }, [connected, walletAddress])
 
   const formatCurrency = (value: number) => {
     if (value >= 10000000) {
@@ -77,7 +90,7 @@ export default function DashboardPage() {
       <main className="pl-64 transition-all duration-300">
         <DashboardHeader 
           title="Dashboard"
-          subtitle="Welcome back, Rahul"
+          subtitle={`Welcome back, ${user?.name || "Investor"}`}
         />
 
         <div className="p-6 space-y-6">
@@ -360,31 +373,45 @@ export default function DashboardPage() {
                 <CardHeader className="pb-2">
                   <CardTitle className="text-base flex items-center gap-2">
                     <Wallet className="h-4 w-4" />
-                    Wallet
+                    Phantom Wallet
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-[oklch(0.65_0.15_165)]" />
-                    <span className="text-sm font-medium">Connected</span>
-                  </div>
-                  <div className="p-3 rounded-lg bg-muted/50">
-                    <p className="text-xs text-muted-foreground mb-1">Address</p>
-                    <p className="font-mono text-sm">0x1234...5678</p>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-xs text-muted-foreground">ETH Balance</p>
-                      <p className="font-medium">2.45 ETH</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">USDC Balance</p>
-                      <p className="font-medium">$12,450</p>
-                    </div>
-                  </div>
-                  <Button variant="outline" className="w-full">
-                    Add Funds
-                  </Button>
+                  {connected ? (
+                    <>
+                      <div className="flex items-center gap-2">
+                        <div className="h-2 w-2 rounded-full bg-green-500" />
+                        <span className="text-sm font-medium text-green-600">Connected</span>
+                      </div>
+                      <div className="p-3 rounded-lg bg-muted/50">
+                        <p className="text-xs text-muted-foreground mb-1">Address</p>
+                        <p className="font-mono text-xs break-all">{walletAddress}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">SOL Balance</p>
+                        <p className="font-semibold text-lg">
+                          {solBalance !== null ? `${solBalance.toFixed(4)} SOL` : "Loading..."}
+                        </p>
+                      </div>
+                      <Button variant="outline" size="sm" className="w-full" onClick={disconnectWallet}>
+                        Disconnect
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex items-center gap-2">
+                        <div className="h-2 w-2 rounded-full bg-muted-foreground" />
+                        <span className="text-sm text-muted-foreground">Not Connected</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Connect your Phantom wallet to enable crypto purchases and on-chain ownership.
+                      </p>
+                      <Button className="w-full" onClick={connectWallet} disabled={connecting}>
+                        <Wallet className="mr-2 h-4 w-4" />
+                        {connecting ? "Connecting..." : "Connect Phantom"}
+                      </Button>
+                    </>
+                  )}
                 </CardContent>
               </Card>
             </div>

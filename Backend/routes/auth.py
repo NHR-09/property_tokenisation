@@ -1,12 +1,27 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from datetime import datetime
 from config import db
 from models.schemas import UserRegister, UserLogin, WalletConnect, TokenResponse
-from services.auth_service import hash_password, verify_password, create_token
+from services.auth_service import hash_password, verify_password, create_token, get_current_user
 from services.solana_service import verify_wallet_signature
 from google.cloud.firestore_v1.base_query import FieldFilter
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
+
+
+@router.get("/me")
+async def get_me(user: dict = Depends(get_current_user)):
+    """Returns current user profile including name and wallet address."""
+    return {
+        "user_id": user["id"],
+        "name": user.get("name", ""),
+        "email": user.get("email", ""),
+        "role": user.get("role", ""),
+        "kyc_status": user.get("kyc_status", "pending"),
+        "wallet_address": user.get("wallet_address"),
+        "total_invested": user.get("total_invested", 0),
+        "properties_owned": user.get("properties_owned", 0),
+    }
 
 
 @router.post("/register", response_model=TokenResponse)
