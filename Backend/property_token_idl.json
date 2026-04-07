@@ -1,0 +1,95 @@
+{
+  "version": "0.1.0",
+  "name": "property_token",
+  "instructions": [
+    {
+      "name": "registerProperty",
+      "accounts": [
+        {"name": "property", "isMut": true, "isSigner": false},
+        {"name": "authority", "isMut": true, "isSigner": true},
+        {"name": "seller", "isMut": false, "isSigner": false},
+        {"name": "systemProgram", "isMut": false, "isSigner": false}
+      ],
+      "args": [
+        {"name": "propertyId", "type": "string"},
+        {"name": "totalTokens", "type": "u64"},
+        {"name": "tokenPriceLamports", "type": "u64"},
+        {"name": "annualYieldBps", "type": "u16"}
+      ]
+    },
+    {
+      "name": "buyTokens",
+      "accounts": [
+        {"name": "property", "isMut": true, "isSigner": false},
+        {"name": "ownership", "isMut": true, "isSigner": false},
+        {"name": "buyer", "isMut": true, "isSigner": true},
+        {"name": "escrow", "isMut": true, "isSigner": false},
+        {"name": "systemProgram", "isMut": false, "isSigner": false}
+      ],
+      "args": [
+        {"name": "propertyId", "type": "string"},
+        {"name": "quantity", "type": "u64"}
+      ]
+    },
+    {
+      "name": "sellTokens",
+      "accounts": [
+        {"name": "property", "isMut": true, "isSigner": false},
+        {"name": "ownership", "isMut": true, "isSigner": false},
+        {"name": "seller", "isMut": true, "isSigner": true},
+        {"name": "systemProgram", "isMut": false, "isSigner": false}
+      ],
+      "args": [
+        {"name": "propertyId", "type": "string"},
+        {"name": "quantity", "type": "u64"}
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "PropertyState",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {"name": "authority", "type": "publicKey"},
+          {"name": "seller", "type": "publicKey"},
+          {"name": "propertyId", "type": "string"},
+          {"name": "totalTokens", "type": "u64"},
+          {"name": "availableTokens", "type": "u64"},
+          {"name": "soldTokens", "type": "u64"},
+          {"name": "tokenPriceLamports", "type": "u64"},
+          {"name": "annualYieldBps", "type": "u16"},
+          {"name": "isActive", "type": "bool"},
+          {"name": "fundsRaisedLamports", "type": "u64"},
+          {"name": "bump", "type": "u8"}
+        ]
+      }
+    },
+    {
+      "name": "OwnershipRecord",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {"name": "owner", "type": "publicKey"},
+          {"name": "propertyId", "type": "string"},
+          {"name": "tokensOwned", "type": "u64"},
+          {"name": "purchasePriceLamports", "type": "u64"},
+          {"name": "totalInvestedLamports", "type": "u64"},
+          {"name": "bump", "type": "u8"}
+        ]
+      }
+    }
+  ],
+  "errors": [
+    {"code": 6000, "name": "PropertyNotActive", "msg": "Property is not active"},
+    {"code": 6001, "name": "InsufficientTokens", "msg": "Not enough tokens available"},
+    {"code": 6002, "name": "Overflow", "msg": "Arithmetic overflow"},
+    {"code": 6003, "name": "Unauthorized", "msg": "Unauthorized"},
+    {"code": 6004, "name": "InvalidQuantity", "msg": "Invalid quantity"},
+    {"code": 6005, "name": "InsufficientOwnership", "msg": "Insufficient tokens to sell"},
+    {"code": 6006, "name": "PropertyIdTooLong", "msg": "Property ID too long"}
+  ],
+  "metadata": {
+    "address": "EHb76xADX6VJGAm1sBXbEAx6bDppvpnvGCKyhaJWMd8N"
+  }
+}

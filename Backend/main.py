@@ -49,6 +49,82 @@ def health():
     return {"status": "healthy"}
 
 
+@app.post("/api/v1/blockchain/register-all-properties", tags=["Blockchain"])
+def register_all_properties_on_chain():
+    """Register all Firebase properties on-chain. Call once after seeding."""
+    from config import db
+    from services.solana_service import mint_property_tokens, get_property_pda, check_pda_exists
+    
+    docs = list(db.collection("properties").stream())
+    results = []
+    
+    for doc in docs:
+        p = doc.to_dict()
+        property_id = doc.id
+        pda = get_property_pda(property_id)
+        
+        # Skip if already on-chain
+        if pda and check_pda_exists(pda):
+            results.append({"property_id": property_id, "pda": pda, "status": "already_registered"})
+            continue
+        
+        result = mint_property_tokens(
+            property_id,
+            p.get("total_tokens", 1000),
+            int(p.get("token_price", 5000) * 1e6),  # convert to lamports (micro-SOL)
+        )
+        results.append({
+            "property_id": property_id,
+            "pda": result.get("pda"),
+            "tx": result.get("tx_signature"),
+            "on_chain": result.get("on_chain", False),
+            "status": "registered"
+        })
+    
+    return {"registered": len(results), "results": results}
+
+
+def verify_pda(pda_address: str):
+    """Verify a PDA exists on-chain — proves ownership is real not simulated."""
+    from services.solana_service import check_pda_exists, get_wallet_balance
+    exists = check_pda_exists(pda_address)
+    return {
+        "pda": pda_address,
+        "exists_on_chain": exists,
+        "network": "http://localhost:8899",
+        "program_id": "EHb76xADX6VJGAm1sBXbEAx6bDppvpnvGCKyhaJWMd8N",
+        "explorer": f"https://explorer.solana.com/address/{pda_address}?cluster=custom&customUrl=http://localhost:8899"
+    }
+
+
+@app.get("/api/v1/blockchain/property-pda/{property_id}", tags=["Blockchain"])
+def get_property_pda_endpoint(property_id: str):
+    """Get the on-chain PDA address for a property."""
+    from services.solana_service import get_property_pda, check_pda_exists
+    pda = get_property_pda(property_id)
+    exists = check_pda_exists(pda) if pda else False
+    return {
+        "property_id": property_id,
+        "pda": pda,
+        "exists_on_chain": exists,
+        "program_id": "EHb76xADX6VJGAm1sBXbEAx6bDppvpnvGCKyhaJWMd8N",
+    }
+
+
+@app.get("/api/v1/blockchain/ownership-pda/{wallet}/{property_id}", tags=["Blockchain"])
+def get_ownership_pda_endpoint(wallet: str, property_id: str):
+    """Get the on-chain ownership PDA for a wallet + property."""
+    from services.solana_service import get_ownership_pda, check_pda_exists
+    pda = get_ownership_pda(wallet, property_id)
+    exists = check_pda_exists(pda) if pda else False
+    return {
+        "wallet": wallet,
+        "property_id": property_id,
+        "ownership_pda": pda,
+        "exists_on_chain": exists,
+    }
+
+
 # ── Seed endpoint (hackathon only — remove in production) ─────────────────────
 @app.post("/api/v1/seed", tags=["Dev"])
 def seed_mock_data():
