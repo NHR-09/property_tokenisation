@@ -1,0 +1,174 @@
+{
+  "pune_property_dataset": [
+    {
+      "id": 1,
+      "locality": "Wakad",
+      "property_type": "flat",
+      "area_sqft": 1000,
+      "rrr_rate_sqft": 7200,
+      "government_value": 7200000
+    },
+    {
+      "id": 2,
+      "locality": "Baner",
+      "property_type": "flat",
+      "area_sqft": 1200,
+      "rrr_rate_sqft": 9500,
+      "government_value": 11400000
+    },
+    {
+      "id": 3,
+      "locality": "Balewadi",
+      "property_type": "flat",
+      "area_sqft": 900,
+      "rrr_rate_sqft": 8800,
+      "government_value": 7920000
+    },
+    {
+      "id": 4,
+      "locality": "Kharadi",
+      "property_type": "flat",
+      "area_sqft": 1100,
+      "rrr_rate_sqft": 9200,
+      "government_value": 10120000
+    },
+    {
+      "id": 5,
+      "locality": "Hinjewadi",
+      "property_type": "flat",
+      "area_sqft": 950,
+      "rrr_rate_sqft": 6800,
+      "government_value": 6460000
+    },
+    {
+      "id": 6,
+      "locality": "Hadapsar",
+      "property_type": "flat",
+      "area_sqft": 1000,
+      "rrr_rate_sqft": 7600,
+      "government_value": 7600000
+    },
+    {
+      "id": 7,
+      "locality": "Kothrud",
+      "property_type": "flat",
+      "area_sqft": 1300,
+      "rrr_rate_sqft": 10500,
+      "government_value": 13650000
+    },
+    {
+      "id": 8,
+      "locality": "Bavdhan",
+      "property_type": "flat",
+      "area_sqft": 1000,
+      "rrr_rate_sqft": 8500,
+      "government_value": 8500000
+    },
+    {
+      "id": 9,
+      "locality": "Aundh",
+      "property_type": "flat",
+      "area_sqft": 1100,
+      "rrr_rate_sqft": 10200,
+      "government_value": 11220000
+    },
+    {
+      "id": 10,
+      "locality": "Viman Nagar",
+      "property_type": "flat",
+      "area_sqft": 900,
+      "rrr_rate_sqft": 9800,
+      "government_value": 8820000
+    },
+    {
+      "id": 11,
+      "locality": "Wagholi",
+      "property_type": "plot",
+      "area_sqft": 2000,
+      "rrr_rate_sqft": 3500,
+      "government_value": 7000000
+    },
+    {
+      "id": 12,
+      "locality": "Moshi",
+      "property_type": "plot",
+      "area_sqft": 1800,
+      "rrr_rate_sqft": 3200,
+      "government_value": 5760000
+    },
+    {
+      "id": 13,
+      "locality": "Ravet",
+      "property_type": "plot",
+      "area_sqft": 1500,
+      "rrr_rate_sqft": 4000,
+      "government_value": 6000000
+    },
+    {
+      "id": 14,
+      "locality": "Talegaon",
+      "property_type": "plot",
+      "area_sqft": 2500,
+      "rrr_rate_sqft": 2800,
+      "government_value": 7000000
+    },
+    {
+      "id": 15,
+      "locality": "Narhe",
+      "property_type": "plot",
+      "area_sqft": 2000,
+      "rrr_rate_sqft": 3000,
+      "government_value": 6000000
+    },
+    {
+      "id": 16,
+      "locality": "Wakad",
+      "property_type": "house",
+      "land_area_sqft": 1200,
+      "building_area_sqft": 1500,
+      "land_rrr_rate_sqft": 7000,
+      "building_rate_sqft": 1500,
+      "government_value": 10500000
+    },
+    {
+      "id": 17,
+      "locality": "Baner",
+      "property_type": "house",
+      "land_area_sqft": 1000,
+      "building_area_sqft": 1800,
+      "land_rrr_rate_sqft": 9000,
+      "building_rate_sqft": 1800,
+      "government_value": 12600000
+    },
+    {
+      "id": 18,
+      "locality": "Hadapsar",
+      "property_type": "house",
+      "land_area_sqft": 1200,
+      "building_area_sqft": 1400,
+      "land_rrr_rate_sqft": 7500,
+      "building_rate_sqft": 1500,
+      "government_value": 11100000
+    },
+    {
+      "id": 19,
+      "locality": "Bavdhan",
+      "property_type": "house",
+      "land_area_sqft": 1000,
+      "building_area_sqft": 1300,
+      "land_rrr_rate_sqft": 8200,
+      "building_rate_sqft": 1500,
+      "government_value": 10300000
+    },
+    {
+      "id": 20,
+      "locality": "Kharadi",
+      "property_type": "house",
+      "land_area_sqft": 900,
+      "building_area_sqft": 1600,
+      "land_rrr_rate_sqft": 8800,
+      "building_rate_sqft": 1700,
+      "government_value": 10480000
+    }
+  ]
+}
