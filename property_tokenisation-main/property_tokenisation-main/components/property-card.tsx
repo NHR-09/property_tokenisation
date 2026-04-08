@@ -1,11 +1,13 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
-import { MapPin, TrendingUp, Shield, Building2 } from "lucide-react"
+import { MapPin, TrendingUp, Shield, Building2, Bookmark } from "lucide-react"
 import Link from "next/link"
+import { watchlist } from "@/lib/api-client"
 
 export interface Property {
   id: string
@@ -31,6 +33,15 @@ interface PropertyCardProps {
 
 export function PropertyCard({ property, index = 0 }: PropertyCardProps) {
   const soldPercentage = ((property.totalTokens - property.availableTokens) / property.totalTokens) * 100
+  const [saved, setSaved] = useState(false)
+
+  useEffect(() => { setSaved(watchlist.has(property.id)) }, [property.id])
+
+  const toggleWatchlist = (e: React.MouseEvent) => {
+    e.preventDefault()
+    watchlist.toggle(property.id)
+    setSaved(watchlist.has(property.id))
+  }
   
   const formatCurrency = (value: number) => {
     if (value >= 10000000) {
@@ -68,12 +79,19 @@ export function PropertyCard({ property, index = 0 }: PropertyCardProps) {
           )}
         </div>
         
-        {/* Property Type Badge */}
-        <div className="absolute top-3 right-3">
+        {/* Property Type + Watchlist */}
+        <div className="absolute top-3 right-3 flex items-center gap-2">
           <Badge variant="outline" className="bg-card/90 backdrop-blur-sm border-0">
             <Building2 className="mr-1 h-3 w-3" />
             {property.propertyType}
           </Badge>
+          <button
+            onClick={toggleWatchlist}
+            className="p-1.5 rounded-full bg-card/90 backdrop-blur-sm hover:bg-card transition-colors"
+            title={saved ? "Remove from watchlist" : "Add to watchlist"}
+          >
+            <Bookmark className={`h-4 w-4 transition-colors ${saved ? "fill-accent text-accent" : "text-muted-foreground"}`} />
+          </button>
         </div>
         
         {/* Bottom overlay info */}

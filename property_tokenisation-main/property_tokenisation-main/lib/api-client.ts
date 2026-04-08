@@ -148,6 +148,27 @@ export function getExplorerUrl(signature: string): string {
   return `https://explorer.solana.com/tx/${signature}?cluster=${cluster}`
 }
 
+// ── Watchlist (localStorage) ──────────────────────────────────────────────────
+const WATCHLIST_KEY = "watchlist_ids"
+
+export const watchlist = {
+  get: (): string[] => {
+    if (typeof window === "undefined") return []
+    try { return JSON.parse(localStorage.getItem(WATCHLIST_KEY) ?? "[]") } catch { return [] }
+  },
+  add: (id: string) => {
+    const ids = watchlist.get()
+    if (!ids.includes(id)) localStorage.setItem(WATCHLIST_KEY, JSON.stringify([...ids, id]))
+  },
+  remove: (id: string) => {
+    localStorage.setItem(WATCHLIST_KEY, JSON.stringify(watchlist.get().filter(i => i !== id)))
+  },
+  toggle: (id: string) => {
+    watchlist.get().includes(id) ? watchlist.remove(id) : watchlist.add(id)
+  },
+  has: (id: string) => watchlist.get().includes(id),
+}
+
 export const api = { auth, properties, payments, tokens, portfolio, governance, seller, admin, wallet }
 
 // ── Types (mirror backend schemas) ───────────────────────────────────────────

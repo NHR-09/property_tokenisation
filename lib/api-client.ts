@@ -27,6 +27,8 @@ export const governance = {
   proposals: () => request<Proposal[]>("/governance/proposals"),
   vote: (proposal_id: string, vote: "for" | "against" | "abstain") =>
     request("/governance/vote", { method: "POST", body: JSON.stringify({ proposal_id, vote }) }),
+  createProposal: (data: { property_id: string; title: string; description: string; end_date: string }) =>
+    request<Proposal>("/governance/proposals", { method: "POST", body: JSON.stringify(data) }),
 }
 
 export interface Proposal {
