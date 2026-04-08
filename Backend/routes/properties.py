@@ -123,7 +123,7 @@ async def update_property_status(
         mint_result = await mint_property_tokens(
             property_id,
             prop["total_tokens"],
-            int(prop["token_price"] * 1e9),   # convert to lamports
+            int(prop["token_price"] * 1e9),
         )
         updates["mint_tx"] = mint_result["tx_signature"]
 

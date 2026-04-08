@@ -12,7 +12,7 @@ property_token = "EHb76xADX6VJGAm1sBXbEAx6bDppvpnvGCKyhaJWMd8N"
 property_token = "EHb76xADX6VJGAm1sBXbEAx6bDppvpnvGCKyhaJWMd8N"
 
 [provider]
-cluster = "devnet"
+cluster = "localnet"
 wallet = "C:\\solana\\id.json"
 
 [scripts]

@@ -115,7 +115,7 @@ export default function DashboardPage() {
             <StatCard
               title="Unrealized P/L"
               value={formatCurrency(totalUnrealizedPL)}
-              change={((totalUnrealizedPL / totalInvested) * 100)}
+              change={totalInvested > 0 ? ((totalUnrealizedPL / totalInvested) * 100) : 0}
               icon={TrendingUp}
               variant="success"
               index={2}
@@ -195,7 +195,7 @@ export default function DashboardPage() {
                     </div>
                     <div className="text-right">
                       <p className="text-sm text-muted-foreground">Return %</p>
-                      <p className="text-xl font-semibold text-[oklch(0.65_0.15_165)]">+{((totalUnrealizedPL / totalInvested) * 100).toFixed(2)}%</p>
+                      <p className="text-xl font-semibold text-[oklch(0.65_0.15_165)]">+{totalInvested > 0 ? ((totalUnrealizedPL / totalInvested) * 100).toFixed(2) : "0.00"}%</p>
                     </div>
                   </div>
                 </CardContent>
@@ -222,7 +222,13 @@ export default function DashboardPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {portfolioHoldings.map((holding) => (
+                      {portfolioHoldings.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                            No holdings yet. <Link href="/marketplace" className="underline">Browse marketplace</Link>
+                          </TableCell>
+                        </TableRow>
+                      ) : portfolioHoldings.map((holding) => (
                         <TableRow key={holding.id}>
                           <TableCell>
                             <div>

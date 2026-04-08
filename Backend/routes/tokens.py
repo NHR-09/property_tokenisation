@@ -7,6 +7,7 @@ from services.auth_service import get_current_user
 from services.payment_service import create_mock_order, simulate_payment, verify_mock_payment, calculate_total
 from services.solana_service import record_ownership_on_chain, get_ownership_pda
 from google.cloud.firestore_v1.base_query import FieldFilter
+from google.cloud.firestore_v1 import ArrayUnion
 
 router = APIRouter(prefix="/tokens", tags=["Tokens"])
 
@@ -90,11 +91,15 @@ async def purchase_tokens(
     transaction_id = f"txn_{uuid.uuid4().hex[:16]}"
     now = datetime.utcnow()
 
-    # Deduct available tokens
+    # Deduct available tokens + append price history snapshot
     db.collection("properties").document(body.property_id).update({
         "available_tokens": prop["available_tokens"] - body.quantity,
         "sold_tokens": prop.get("sold_tokens", 0) + body.quantity,
         "funds_raised": prop.get("funds_raised", 0) + totals["total"],
+        "price_history": ArrayUnion([{
+            "date": now.strftime("%Y-%m"),
+            "price": prop["token_price"]
+        }])
     })
 
     # Create/update ownership record

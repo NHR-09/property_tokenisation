@@ -50,7 +50,7 @@ def health():
 
 
 @app.post("/api/v1/blockchain/register-all-properties", tags=["Blockchain"])
-def register_all_properties_on_chain():
+async def register_all_properties_on_chain():
     """Register all Firebase properties on-chain. Call once after seeding."""
     from config import db
     from services.solana_service import mint_property_tokens, get_property_pda, check_pda_exists
@@ -68,10 +68,10 @@ def register_all_properties_on_chain():
             results.append({"property_id": property_id, "pda": pda, "status": "already_registered"})
             continue
         
-        result = mint_property_tokens(
+        result = await mint_property_tokens(
             property_id,
             p.get("total_tokens", 1000),
-            int(p.get("token_price", 5000) * 1e6),  # convert to lamports (micro-SOL)
+            int(p.get("token_price", 5000) * 1e6),
         )
         results.append({
             "property_id": property_id,

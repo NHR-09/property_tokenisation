@@ -84,14 +84,7 @@ const propertyDetails = {
     { date: "2024-03-12", type: "Sell", investor: "0x9876...5432", tokens: 50, price: 4950 },
     { date: "2024-03-10", type: "Buy", investor: "0x5555...4444", tokens: 500, price: 4900 },
   ],
-  priceHistory: [
-    { month: "Oct", price: 4500 },
-    { month: "Nov", price: 4650 },
-    { month: "Dec", price: 4800 },
-    { month: "Jan", price: 4850 },
-    { month: "Feb", price: 4950 },
-    { month: "Mar", price: 5000 },
-  ],
+  priceHistory: [] as { month: string; price: number }[], // generated per-property below
   risks: [
     { level: "low", title: "Market Risk", description: "Property located in established IT corridor with stable demand" },
     { level: "low", title: "Liquidity Risk", description: "High trading volume ensures easy exit" },
@@ -131,6 +124,11 @@ export default function PropertyDetailsPage({ params }: { params: Promise<{ id: 
   const soldPercentage = ((property.totalTokens - property.availableTokens) / property.totalTokens) * 100
   const estimatedCost = buyQuantity * property.tokenPrice
   const ownershipPercentage = ((buyQuantity / property.totalTokens) * 100).toFixed(4)
+
+  const priceHistory = ["Oct", "Nov", "Dec", "Jan", "Feb", "Mar"].map((month, i) => ({
+    month,
+    price: Math.round(property.tokenPrice * (0.90 + i * 0.02))
+  }))
 
   const nextImage = () => setCurrentImage((prev) => (prev + 1) % images.length)
   const prevImage = () => setCurrentImage((prev) => (prev - 1 + images.length) % images.length)
@@ -655,7 +653,7 @@ export default function PropertyDetailsPage({ params }: { params: Promise<{ id: 
                     </div>
                     <div>
                       <p className="text-xs text-muted-foreground">ROI (Est. 5yr)</p>
-                      <p className="font-semibold">42.5%</p>
+                      <p className="font-semibold">{(property.annualYield * 5).toFixed(1)}%</p>
                     </div>
                   </div>
                   <Separator />
