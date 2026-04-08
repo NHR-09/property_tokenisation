@@ -77,11 +77,21 @@ class TokenPurchaseOut(BaseModel):
     status: str
 
 
+class TokenSellOut(BaseModel):
+    transaction_id: str
+    property_id: str
+    tokens_sold: int
+    amount_received: float
+    blockchain_tx: Optional[str] = None
+    status: str
+
+
 # ── Portfolio ─────────────────────────────────────────────────────────────────
 class HoldingOut(BaseModel):
     id: str
     propertyId: str
     propertyTitle: str
+    propertyType: str = "Commercial"
     location: str
     tokensOwned: int
     purchasePrice: float
@@ -101,6 +111,7 @@ class TransactionOut(BaseModel):
     tokens: Optional[int] = None
     date: str
     status: Literal["completed", "pending", "failed"]
+    blockchainTx: Optional[str] = None
 
 
 # ── Governance ────────────────────────────────────────────────────────────────

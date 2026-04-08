@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from typing import List
 from config import db
 from models.schemas import HoldingOut, TransactionOut
@@ -18,6 +18,7 @@ async def get_holdings(user: dict = Depends(get_current_user)):
             id=doc.id,
             propertyId=d.get("property_id", ""),
             propertyTitle=d.get("property_title", ""),
+            propertyType=d.get("property_type", "Commercial"),
             location=d.get("location", ""),
             tokensOwned=d.get("tokens_owned", 0),
             purchasePrice=d.get("purchase_price", 0),
@@ -45,11 +46,10 @@ async def get_transactions(user: dict = Depends(get_current_user)):
                 tokens=d.get("tokens"),
                 date=d.get("date", ""),
                 status=d.get("status", "completed"),
+                blockchainTx=d.get("blockchain_tx"),
             ))
         return txns
     except Exception as e:
-        import traceback
-        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
 

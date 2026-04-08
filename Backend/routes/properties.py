@@ -120,7 +120,7 @@ async def update_property_status(
         if not doc.exists:
             raise HTTPException(status_code=404, detail="Property not found")
         prop = doc.to_dict()
-        mint_result = mint_property_tokens(
+        mint_result = await mint_property_tokens(
             property_id,
             prop["total_tokens"],
             int(prop["token_price"] * 1e9),   # convert to lamports

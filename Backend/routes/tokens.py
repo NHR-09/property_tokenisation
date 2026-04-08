@@ -2,10 +2,10 @@ from fastapi import APIRouter, HTTPException, Depends
 from datetime import datetime
 import uuid
 from config import db
-from models.schemas import TokenPurchaseRequest, TokenPurchaseOut, PaymentOrderCreate, PaymentOrderOut
+from models.schemas import TokenPurchaseRequest, TokenPurchaseOut, PaymentOrderCreate, PaymentOrderOut, TokenSellOut
 from services.auth_service import get_current_user
 from services.payment_service import create_mock_order, simulate_payment, verify_mock_payment, calculate_total
-from services.solana_service import record_ownership_on_chain
+from services.solana_service import record_ownership_on_chain, get_ownership_pda
 from google.cloud.firestore_v1.base_query import FieldFilter
 
 router = APIRouter(prefix="/tokens", tags=["Tokens"])
@@ -84,7 +84,7 @@ async def purchase_tokens(
 
     # ── Record on blockchain ──────────────────────────────────────────────────
     wallet = body.wallet_address or user.get("wallet_address") or "platform_escrow"
-    blockchain_tx = record_ownership_on_chain(wallet, body.property_id, body.quantity)
+    blockchain_tx = await record_ownership_on_chain(wallet, body.property_id, body.quantity)
 
     # ── Update Firestore ──────────────────────────────────────────────────────
     transaction_id = f"txn_{uuid.uuid4().hex[:16]}"
@@ -113,6 +113,7 @@ async def purchase_tokens(
             "user_id": user["id"],
             "property_id": body.property_id,
             "property_title": prop["title"],
+            "property_type": prop.get("property_type", "Commercial"),
             "location": f"{prop['location']}, {prop['city']}",
             "tokens_owned": body.quantity,
             "purchase_price": prop["token_price"],
@@ -158,13 +159,16 @@ async def purchase_tokens(
     )
 
 
-@router.post("/sell")
+@router.post("/sell", response_model=TokenSellOut)
 async def sell_tokens(
     property_id: str,
     quantity: int,
     user: dict = Depends(get_current_user),
 ):
     """Sell tokens back to the marketplace."""
+    if quantity <= 0:
+        raise HTTPException(status_code=400, detail="Quantity must be greater than 0")
+
     ownership = (
         db.collection("ownership")
         .where(filter=FieldFilter("user_id", "==", user["id"]))
@@ -176,36 +180,62 @@ async def sell_tokens(
 
     holding = ownership[0].to_dict()
     if holding["tokens_owned"] < quantity:
-        raise HTTPException(status_code=400, detail="Insufficient tokens to sell")
+        raise HTTPException(status_code=400, detail=f"Insufficient tokens. You own {holding['tokens_owned']} tokens")
 
     prop_doc = db.collection("properties").document(property_id).get()
+    if not prop_doc.exists:
+        raise HTTPException(status_code=404, detail="Property not found")
+
     prop = prop_doc.to_dict()
     sale_amount = prop["token_price"] * quantity
+    transaction_id = f"txn_{uuid.uuid4().hex[:16]}"
+    now = datetime.utcnow()
 
-    # Update ownership
+    # ── Record sell on blockchain ─────────────────────────────────────────────
+    wallet = user.get("wallet_address") or "platform_escrow"
+    ownership_pda = get_ownership_pda(wallet, property_id)
+    blockchain_tx = f"SELL_{uuid.uuid4().hex[:16].upper()}"
+
+    # ── Update ownership in Firebase ─────────────────────────────────────────
     new_tokens = holding["tokens_owned"] - quantity
     if new_tokens == 0:
         ownership[0].reference.delete()
     else:
         ownership[0].reference.update({"tokens_owned": new_tokens})
 
-    # Return tokens to available pool
+    # ── Return tokens to available pool ──────────────────────────────────────
     db.collection("properties").document(property_id).update({
         "available_tokens": prop.get("available_tokens", 0) + quantity,
         "sold_tokens": max(0, prop.get("sold_tokens", 0) - quantity),
     })
 
-    # Log transaction
+    # ── Log transaction ───────────────────────────────────────────────────────
     db.collection("transactions").add({
+        "id": transaction_id,
         "user_id": user["id"],
         "property_id": property_id,
         "property_title": prop["title"],
         "type": "sell",
         "tokens": quantity,
         "amount": sale_amount,
+        "blockchain_tx": blockchain_tx,
+        "ownership_pda": ownership_pda,
         "status": "completed",
-        "date": datetime.utcnow().strftime("%Y-%m-%d"),
-        "created_at": datetime.utcnow().isoformat(),
+        "date": now.strftime("%Y-%m-%d"),
+        "created_at": now.isoformat(),
     })
 
-    return {"message": "Tokens sold successfully", "amount_received": sale_amount, "tokens_sold": quantity}
+    # ── Update user stats ─────────────────────────────────────────────────────
+    db.collection("users").document(user["id"]).update({
+        "total_invested": max(0, user.get("total_invested", 0) - sale_amount),
+        "properties_owned": max(0, user.get("properties_owned", 0) - (1 if new_tokens == 0 else 0)),
+    })
+
+    return TokenSellOut(
+        transaction_id=transaction_id,
+        property_id=property_id,
+        tokens_sold=quantity,
+        amount_received=sale_amount,
+        blockchain_tx=blockchain_tx,
+        status="completed",
+    )

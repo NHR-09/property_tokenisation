@@ -4,7 +4,6 @@ Uses anchorpy to call smart contract instructions and verify PDAs on-chain.
 """
 import json
 import os
-import asyncio
 from typing import Optional
 from config import SOLANA_RPC_URL, SOLANA_PROGRAM_ID
 
@@ -82,14 +81,15 @@ def get_property_pda(property_id: str) -> Optional[str]:
 
 
 def get_ownership_pda(wallet_address: str, property_id: str) -> Optional[str]:
-    """Derive the real ownership PDA for a wallet + property."""
+    """Derive ownership PDA — uses platform keypair as signer/buyer."""
     if not SOLANA_AVAILABLE or not SOLANA_PROGRAM_ID:
         return None
     try:
         program_id = Pubkey.from_string(SOLANA_PROGRAM_ID)
-        owner_pubkey = Pubkey.from_string(wallet_address)
+        keypair = _load_keypair()
+        signer_pubkey = keypair.pubkey() if keypair else Pubkey.from_string(wallet_address)
         pda, _ = Pubkey.find_program_address(
-            [b"ownership", bytes(owner_pubkey), property_id.encode()],
+            [b"ownership", bytes(signer_pubkey), property_id.encode()],
             program_id
         )
         return str(pda)
@@ -136,7 +136,7 @@ async def _register_property_async(
             program_id
         )
 
-        tx = await program.rpc["registerProperty"](
+        tx = await program.rpc["register_property"](
             property_id,
             total_tokens,
             token_price_lamports,
@@ -146,7 +146,7 @@ async def _register_property_async(
                     "property": property_pda,
                     "authority": keypair.pubkey(),
                     "seller": keypair.pubkey(),
-                    "systemProgram": SYS_PROGRAM_ID,
+                    "system_program": SYS_PROGRAM_ID,
                 }
             )
         )
@@ -176,12 +176,14 @@ async def _buy_tokens_async(
             [b"property", property_id.encode()],
             program_id
         )
+        # PDA must be derived from the actual signer (platform keypair),
+        # since the program uses buyer.key() which is the tx signer
         ownership_pda, _ = Pubkey.find_program_address(
-            [b"ownership", bytes(buyer_pubkey), property_id.encode()],
+            [b"ownership", bytes(keypair.pubkey()), property_id.encode()],
             program_id
         )
 
-        tx = await program.rpc["buyTokens"](
+        tx = await program.rpc["buy_tokens"](
             property_id,
             quantity,
             ctx=Context(
@@ -190,18 +192,17 @@ async def _buy_tokens_async(
                     "ownership": ownership_pda,
                     "buyer": keypair.pubkey(),
                     "escrow": keypair.pubkey(),
-                    "systemProgram": SYS_PROGRAM_ID,
+                    "system_program": SYS_PROGRAM_ID,
                 }
             )
         )
         return str(tx)
 
 
-def mint_property_tokens(property_id: str, total_tokens: int, token_price_lamports: int) -> dict:
+async def mint_property_tokens(property_id: str, total_tokens: int, token_price_lamports: int) -> dict:
     """Register property on-chain. Falls back to mock if localnet not running."""
     pda = get_property_pda(property_id)
 
-    # Check if already registered
     if pda and check_pda_exists(pda):
         return {
             "tx_signature": "ALREADY_REGISTERED",
@@ -211,9 +212,9 @@ def mint_property_tokens(property_id: str, total_tokens: int, token_price_lampor
         }
 
     try:
-        tx = asyncio.run(_register_property_async(
+        tx = await _register_property_async(
             property_id, total_tokens, token_price_lamports, 850
-        ))
+        )
         print(f"[Solana] Property registered on-chain: {property_id} tx={tx}")
         return {
             "tx_signature": tx,
@@ -233,13 +234,13 @@ def mint_property_tokens(property_id: str, total_tokens: int, token_price_lampor
         }
 
 
-def record_ownership_on_chain(wallet_address: str, property_id: str, tokens: int) -> str:
+async def record_ownership_on_chain(wallet_address: str, property_id: str, tokens: int) -> str:
     """Record token purchase on-chain via buy_tokens instruction."""
     ownership_pda = get_ownership_pda(wallet_address, property_id)
     property_pda = get_property_pda(property_id)
 
     try:
-        tx = asyncio.run(_buy_tokens_async(wallet_address, property_id, tokens))
+        tx = await _buy_tokens_async(wallet_address, property_id, tokens)
         print(f"[Solana] ✅ REAL on-chain tx: wallet={wallet_address[:8]}... "
               f"property={property_id[:8]}... tokens={tokens} "
               f"ownership_pda={ownership_pda} tx={tx}")

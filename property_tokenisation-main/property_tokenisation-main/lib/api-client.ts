@@ -92,7 +92,7 @@ export const tokens = {
     }),
 
   sell: (property_id: string, quantity: number) =>
-    request(`/tokens/sell?property_id=${property_id}&quantity=${quantity}`, { method: "POST" }),
+    request<TokenSellResult>(`/tokens/sell?property_id=${property_id}&quantity=${quantity}`, { method: "POST" }),
 }
 
 // ── Portfolio ─────────────────────────────────────────────────────────────────
@@ -135,6 +135,17 @@ export const admin = {
 export const wallet = {
   balance: (address: string) => request<{ wallet: string; sol_balance: number }>(`/wallet/balance/${address}`),
   holdings: (address: string) => request(`/wallet/holdings/${address}`),
+  verifyTx: (signature: string) => request<{ confirmed: boolean; slot?: number; explorer_url: string; mock?: boolean }>(`/wallet/verify-tx/${signature}`),
+}
+
+/** Returns Solana Explorer URL for a tx signature based on the current network */
+export function getExplorerUrl(signature: string): string {
+  const rpc = process.env.NEXT_PUBLIC_SOLANA_RPC_URL ?? ""
+  let cluster: string
+  if (rpc.includes("devnet")) cluster = "devnet"
+  else if (rpc.includes("mainnet")) cluster = "mainnet-beta"
+  else cluster = "custom&customUrl=http%3A%2F%2Flocalhost%3A8899"
+  return `https://explorer.solana.com/tx/${signature}?cluster=${cluster}`
 }
 
 export const api = { auth, properties, payments, tokens, portfolio, governance, seller, admin, wallet }
@@ -170,8 +181,17 @@ export interface TokenPurchaseResult {
   amount_paid: number; platform_fee: number; blockchain_tx?: string; status: string
 }
 
+export interface TokenSellResult {
+  transaction_id: string
+  property_id: string
+  tokens_sold: number
+  amount_received: number
+  blockchain_tx?: string
+  status: string
+}
+
 export interface Holding {
-  id: string; propertyId: string; propertyTitle: string; location: string
+  id: string; propertyId: string; propertyTitle: string; propertyType: string; location: string
   tokensOwned: number; purchasePrice: number; currentPrice: number
   purchaseDate: string; rentalIncome: number; unrealizedPL: number; unrealizedPLPercent: number
 }
@@ -179,7 +199,7 @@ export interface Holding {
 export interface Transaction {
   id: string; type: "buy" | "sell" | "rental" | "dividend"
   propertyTitle: string; amount: number; tokens?: number; date: string
-  status: "completed" | "pending" | "failed"
+  status: "completed" | "pending" | "failed"; blockchainTx?: string
 }
 
 export interface PortfolioSummary {

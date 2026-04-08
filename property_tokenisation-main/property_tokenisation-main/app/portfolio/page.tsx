@@ -7,7 +7,16 @@ import { StatCard } from "@/components/stat-card"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import {
   Table,
   TableBody,
@@ -24,6 +33,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Progress } from "@/components/ui/progress"
+import { Separator } from "@/components/ui/separator"
 import {
   Wallet,
   TrendingUp,
@@ -36,35 +46,68 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   ExternalLink,
+  Loader2,
 } from "lucide-react"
 import Link from "next/link"
-import { api } from "@/lib/api-client"
+import { api, getExplorerUrl } from "@/lib/api-client"
 import type { Holding, Transaction } from "@/lib/api-client"
 
-// Extended data for portfolio page
-const dividendHistory = [
-  { id: 1, property: "Premium Commercial Complex", amount: 8500, date: "2024-03-15", quarter: "Q1 2024" },
-  { id: 2, property: "Tech Park Office Space", amount: 6200, date: "2024-03-15", quarter: "Q1 2024" },
-  { id: 3, property: "Premium Retail Complex", amount: 12500, date: "2024-03-15", quarter: "Q1 2024" },
-  { id: 4, property: "Premium Commercial Complex", amount: 8200, date: "2023-12-15", quarter: "Q4 2023" },
-  { id: 5, property: "Tech Park Office Space", amount: 5900, date: "2023-12-15", quarter: "Q4 2023" },
-]
-
-const allocationData = [
-  { type: "Commercial", percentage: 45, value: 2500000, color: "bg-accent" },
-  { type: "Office", percentage: 30, value: 2000000, color: "bg-[oklch(0.65_0.15_165)]" },
-  { type: "Retail", percentage: 25, value: 3000000, color: "bg-[oklch(0.75_0.15_80)]" },
-]
+// Pie chart colors per property type
+const TYPE_COLORS: Record<string, { stroke: string; bg: string }> = {
+  Commercial: { stroke: "oklch(0.55 0.15 250)", bg: "bg-accent" },
+  Office:     { stroke: "oklch(0.65 0.15 165)", bg: "bg-[oklch(0.65_0.15_165)]" },
+  Retail:     { stroke: "oklch(0.75 0.15 80)",  bg: "bg-[oklch(0.75_0.15_80)]" },
+  Residential:{ stroke: "oklch(0.60 0.15 30)",  bg: "bg-[oklch(0.60_0.15_30)]" },
+  "Mixed-Use":{ stroke: "oklch(0.70 0.10 300)", bg: "bg-[oklch(0.70_0.10_300)]" },
+}
 
 export default function PortfolioPage() {
   const [dateFilter, setDateFilter] = useState("all")
   const [portfolioHoldings, setPortfolioHoldings] = useState<Holding[]>([])
   const [transactions, setTransactions] = useState<Transaction[]>([])
+  const [sellDialog, setSellDialog] = useState<{ open: boolean; holding: Holding | null }>({
+    open: false, holding: null
+  })
+  const [sellQuantity, setSellQuantity] = useState(1)
+  const [selling, setSelling] = useState(false)
+  const [sellSuccess, setSellSuccess] = useState(false)
+  const [sellError, setSellError] = useState("")
 
-  useEffect(() => {
+  const loadData = () => {
     api.portfolio.holdings().then(setPortfolioHoldings).catch(() => {})
     api.portfolio.transactions().then(setTransactions).catch(() => {})
+  }
+
+  useEffect(() => {
+    loadData()
+    // Refresh when user navigates back to this tab
+    const onFocus = () => loadData()
+    window.addEventListener("focus", onFocus)
+    document.addEventListener("visibilitychange", () => { if (!document.hidden) loadData() })
+    return () => window.removeEventListener("focus", onFocus)
   }, [])
+
+  const openSellDialog = (holding: Holding) => {
+    setSellDialog({ open: true, holding })
+    setSellQuantity(1)
+    setSellSuccess(false)
+    setSellError("")
+  }
+
+  const handleSell = async () => {
+    if (!sellDialog.holding) return
+    setSelling(true)
+    setSellError("")
+    try {
+      await api.tokens.sell(sellDialog.holding.propertyId, sellQuantity)
+      setSellSuccess(true)
+      loadData() // refresh holdings
+    } catch (err: any) {
+      setSellError(err.message || "Sell failed")
+    } finally {
+      setSelling(false)
+    }
+  }
 
   const formatCurrency = (value: number) => {
     if (value >= 10000000) {
@@ -86,7 +129,27 @@ export default function PortfolioPage() {
   )
   const totalUnrealizedPL = portfolioHoldings.reduce((acc, h) => acc + h.unrealizedPL, 0)
   const totalRentalIncome = portfolioHoldings.reduce((acc, h) => acc + h.rentalIncome, 0)
-  const totalDividends = dividendHistory.reduce((acc, d) => acc + d.amount, 0)
+  const totalDividends = transactions
+    .filter(t => t.type === "dividend")
+    .reduce((acc, t) => acc + t.amount, 0)
+
+  // Compute allocation from real holdings grouped by property type
+  // We derive type from propertyTitle keywords as a fallback since Holding doesn't carry type
+  const allocationData = (() => {
+    const typeMap: Record<string, number> = {}
+    portfolioHoldings.forEach(h => {
+      const type = h.propertyType || "Commercial"
+      typeMap[type] = (typeMap[type] ?? 0) + h.tokensOwned * h.currentPrice
+    })
+    const total = Object.values(typeMap).reduce((a, b) => a + b, 0) || 1
+    return Object.entries(typeMap).map(([type, value]) => ({
+      type,
+      value,
+      percentage: Math.round((value / total) * 100),
+      color: TYPE_COLORS[type]?.bg ?? "bg-muted",
+      stroke: TYPE_COLORS[type]?.stroke ?? "oklch(0.5 0.1 0)",
+    }))
+  })()
 
   return (
     <div className="min-h-screen bg-background">
@@ -162,7 +225,13 @@ export default function PortfolioPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {portfolioHoldings.map((holding, index) => (
+                      {portfolioHoldings.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={7} className="text-center text-muted-foreground py-10">
+                            No holdings yet. <Link href="/marketplace" className="underline">Browse marketplace</Link>
+                          </TableCell>
+                        </TableRow>
+                      ) : portfolioHoldings.map((holding, index) => (
                         <TableRow 
                           key={holding.id}
                           className="opacity-0 animate-fade-in-up"
@@ -200,11 +269,21 @@ export default function PortfolioPage() {
                             {formatCurrency(holding.rentalIncome)}
                           </TableCell>
                           <TableCell>
-                            <Button variant="ghost" size="sm" asChild>
-                              <Link href={`/properties/${holding.propertyId}`}>
-                                <ExternalLink className="h-4 w-4" />
-                              </Link>
-                            </Button>
+                            <div className="flex items-center gap-1">
+                              <Button variant="ghost" size="sm" asChild>
+                                <Link href={`/properties/${holding.propertyId}`}>
+                                  <ExternalLink className="h-4 w-4" />
+                                </Link>
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                onClick={() => openSellDialog(holding)}
+                              >
+                                Sell
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -263,20 +342,22 @@ export default function PortfolioPage() {
 
                     <TabsContent value="dividends" className="m-0">
                       <div className="space-y-4">
-                        {dividendHistory.map((div) => (
-                          <div key={div.id} className="flex items-center justify-between py-3 border-b last:border-0">
+                        {transactions.filter(t => t.type === "dividend").length === 0 ? (
+                          <p className="text-sm text-muted-foreground text-center py-6">No dividends yet</p>
+                        ) : transactions.filter(t => t.type === "dividend").map((txn) => (
+                          <div key={txn.id} className="flex items-center justify-between py-3 border-b last:border-0">
                             <div className="flex items-center gap-3">
                               <div className="p-2 rounded-lg bg-[oklch(0.65_0.15_165)]/10">
                                 <ArrowDownRight className="h-4 w-4 text-[oklch(0.65_0.15_165)]" />
                               </div>
                               <div>
-                                <p className="font-medium">{div.property}</p>
-                                <p className="text-xs text-muted-foreground">{div.quarter}</p>
+                                <p className="font-medium">{txn.propertyTitle}</p>
+                                <p className="text-xs text-muted-foreground">Dividend</p>
                               </div>
                             </div>
                             <div className="text-right">
-                              <p className="font-medium text-[oklch(0.65_0.15_165)]">+{formatCurrency(div.amount)}</p>
-                              <p className="text-xs text-muted-foreground">{div.date}</p>
+                              <p className="font-medium text-[oklch(0.65_0.15_165)]">+{formatCurrency(txn.amount)}</p>
+                              <p className="text-xs text-muted-foreground">{txn.date}</p>
                             </div>
                           </div>
                         ))}
@@ -304,6 +385,20 @@ export default function PortfolioPage() {
                               <div>
                                 <p className="font-medium">{txn.propertyTitle}</p>
                                 <p className="text-xs text-muted-foreground capitalize">{txn.type}</p>
+                                {txn.blockchainTx && (
+                                  <a
+                                    href={getExplorerUrl(txn.blockchainTx)}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-xs text-[oklch(0.65_0.15_165)] flex items-center gap-1 mt-0.5 hover:underline"
+                                  >
+                                    <ExternalLink className="h-3 w-3" />
+                                    {txn.blockchainTx.startsWith("LOCAL_") || txn.blockchainTx.startsWith("MOCK_")
+                                      ? "Mock tx"
+                                      : `${txn.blockchainTx.slice(0, 12)}...`
+                                    }
+                                  </a>
+                                )}
                               </div>
                             </div>
                             <div className="text-right">
@@ -334,57 +429,41 @@ export default function PortfolioPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {/* Simple pie chart representation */}
                   <div className="relative h-40 flex items-center justify-center">
                     <svg viewBox="0 0 100 100" className="w-32 h-32 transform -rotate-90">
-                      <circle
-                        cx="50"
-                        cy="50"
-                        r="40"
-                        fill="none"
-                        stroke="oklch(0.55 0.15 250)"
-                        strokeWidth="20"
-                        strokeDasharray="113 251"
-                        className="opacity-0 animate-fade-in"
-                        style={{ animationDelay: '200ms', animationFillMode: 'forwards' }}
-                      />
-                      <circle
-                        cx="50"
-                        cy="50"
-                        r="40"
-                        fill="none"
-                        stroke="oklch(0.65 0.15 165)"
-                        strokeWidth="20"
-                        strokeDasharray="75 251"
-                        strokeDashoffset="-113"
-                        className="opacity-0 animate-fade-in"
-                        style={{ animationDelay: '300ms', animationFillMode: 'forwards' }}
-                      />
-                      <circle
-                        cx="50"
-                        cy="50"
-                        r="40"
-                        fill="none"
-                        stroke="oklch(0.75 0.15 80)"
-                        strokeWidth="20"
-                        strokeDasharray="63 251"
-                        strokeDashoffset="-188"
-                        className="opacity-0 animate-fade-in"
-                        style={{ animationDelay: '400ms', animationFillMode: 'forwards' }}
-                      />
+                      {(() => {
+                        const circumference = 2 * Math.PI * 40
+                        let offset = 0
+                        return allocationData.map((item, i) => {
+                          const dash = (item.percentage / 100) * circumference
+                          const el = (
+                            <circle
+                              key={item.type}
+                              cx="50" cy="50" r="40"
+                              fill="none"
+                              stroke={item.stroke}
+                              strokeWidth="20"
+                              strokeDasharray={`${dash} ${circumference}`}
+                              strokeDashoffset={-offset}
+                              className="opacity-0 animate-fade-in"
+                              style={{ animationDelay: `${(i + 2) * 100}ms`, animationFillMode: 'forwards' }}
+                            />
+                          )
+                          offset += dash
+                          return el
+                        })
+                      })()}
                     </svg>
                     <div className="absolute inset-0 flex items-center justify-center">
                       <div className="text-center">
-                        <p className="text-2xl font-semibold">3</p>
+                        <p className="text-2xl font-semibold">{portfolioHoldings.length}</p>
                         <p className="text-xs text-muted-foreground">Assets</p>
                       </div>
                     </div>
                   </div>
-
-                  {/* Legend */}
                   <div className="space-y-3">
                     {allocationData.map((item, index) => (
-                      <div 
+                      <div
                         key={item.type}
                         className="opacity-0 animate-fade-in-up"
                         style={{ animationDelay: `${(index + 3) * 100}ms`, animationFillMode: 'forwards' }}
@@ -463,6 +542,102 @@ export default function PortfolioPage() {
           </div>
         </div>
       </main>
+
+      {/* Sell Dialog */}
+      <Dialog open={sellDialog.open} onOpenChange={(v) => {
+        setSellDialog({ open: v, holding: sellDialog.holding })
+        if (!v) { setSellSuccess(false); setSellError("") }
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{sellSuccess ? "Tokens Sold! ✅" : "Sell Tokens"}</DialogTitle>
+            <DialogDescription>
+              {sellSuccess
+                ? `Successfully sold ${sellQuantity} tokens`
+                : `Sell tokens of ${sellDialog.holding?.propertyTitle}`
+              }
+            </DialogDescription>
+          </DialogHeader>
+
+          {!sellSuccess ? (
+            <div className="space-y-4 py-2">
+              <div className="p-4 rounded-lg bg-muted/50 space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Tokens Owned</span>
+                  <span className="font-medium">{sellDialog.holding?.tokensOwned}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Current Price</span>
+                  <span className="font-medium">{formatCurrency(sellDialog.holding?.currentPrice ?? 0)}</span>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Quantity to Sell</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  max={sellDialog.holding?.tokensOwned}
+                  value={sellQuantity}
+                  onChange={e => setSellQuantity(Math.min(
+                    Math.max(1, parseInt(e.target.value) || 1),
+                    sellDialog.holding?.tokensOwned ?? 1
+                  ))}
+                />
+                <div className="flex gap-2">
+                  {[1, 5, 10, 25, 50].filter(q => q <= (sellDialog.holding?.tokensOwned ?? 0)).map(q => (
+                    <Button key={q} variant="outline" size="sm" className="flex-1" onClick={() => setSellQuantity(q)}>
+                      {q}
+                    </Button>
+                  ))}
+                  <Button variant="outline" size="sm" className="flex-1"
+                    onClick={() => setSellQuantity(sellDialog.holding?.tokensOwned ?? 1)}>
+                    All
+                  </Button>
+                </div>
+              </div>
+
+              <Separator />
+
+              <div className="p-4 rounded-lg bg-muted/50 space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Tokens to Sell</span>
+                  <span className="font-medium">{sellQuantity}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">You Receive</span>
+                  <span className="font-semibold text-[oklch(0.65_0.15_165)]">
+                    {formatCurrency((sellDialog.holding?.currentPrice ?? 0) * sellQuantity)}
+                  </span>
+                </div>
+              </div>
+
+              {sellError && <p className="text-sm text-destructive text-center">{sellError}</p>}
+
+              <Button
+                className="w-full bg-destructive hover:bg-destructive/90"
+                onClick={handleSell}
+                disabled={selling}
+              >
+                {selling && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {selling ? "Processing..." : `Sell ${sellQuantity} Tokens`}
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-4 py-2">
+              <div className="p-4 rounded-lg bg-[oklch(0.65_0.15_165)]/10 text-center">
+                <p className="text-2xl font-semibold text-[oklch(0.65_0.15_165)]">
+                  +{formatCurrency((sellDialog.holding?.currentPrice ?? 0) * sellQuantity)}
+                </p>
+                <p className="text-sm text-muted-foreground mt-1">Added to your balance</p>
+              </div>
+              <Button className="w-full" onClick={() => setSellDialog({ open: false, holding: null })}>
+                Done
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

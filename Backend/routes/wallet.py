@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
 from config import db
 from services.auth_service import get_current_user
-from services.solana_service import get_wallet_balance, verify_wallet_signature
+from services.solana_service import get_wallet_balance, verify_wallet_signature, verify_transaction
+from config import SOLANA_RPC_URL
 from google.cloud.firestore_v1.base_query import FieldFilter
 from models.schemas import WalletConnect
 
@@ -24,6 +25,21 @@ async def link_wallet(body: WalletConnect, user: dict = Depends(get_current_user
         "wallet_address": body.wallet_address
     })
     return {"message": "Wallet linked successfully", "wallet_address": body.wallet_address}
+
+
+@router.get("/verify-tx/{signature}")
+async def verify_tx(signature: str, _: dict = Depends(get_current_user)):
+    """Verify a transaction on-chain and return explorer URL."""
+    result = verify_transaction(signature)
+    # Determine network cluster for explorer URL
+    if "devnet" in SOLANA_RPC_URL:
+        cluster = "devnet"
+    elif "mainnet" in SOLANA_RPC_URL:
+        cluster = "mainnet-beta"
+    else:
+        cluster = "custom&customUrl=http%3A%2F%2Flocalhost%3A8899"
+    result["explorer_url"] = f"https://explorer.solana.com/tx/{signature}?cluster={cluster}"
+    return result
 
 
 @router.get("/holdings/{wallet_address}")
