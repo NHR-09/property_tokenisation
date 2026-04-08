@@ -22,13 +22,20 @@ export default function AuthPage() {
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
 
+  const getRedirectPath = (role: string) => {
+    if (role === "admin") return "/admin"
+    if (role === "seller") return "/seller"
+    return "/dashboard"
+  }
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
     setLoading(true)
     try {
       await login(loginData.email, loginData.password)
-      router.push("/dashboard")
+      const userData = JSON.parse(localStorage.getItem("user_data") || "{}")
+      router.push(getRedirectPath(userData.role))
     } catch (err: any) {
       setError(err.message || "Login failed")
     } finally {
@@ -42,7 +49,7 @@ export default function AuthPage() {
     setLoading(true)
     try {
       await register(registerData.name, registerData.email, registerData.password, registerData.role)
-      router.push("/dashboard")
+      router.push(getRedirectPath(registerData.role))
     } catch (err: any) {
       setError(err.message || "Registration failed")
     } finally {

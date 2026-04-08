@@ -176,7 +176,7 @@ class AdminPropertyOut(BaseModel):
     legalCleared: bool
 
 class PropertyStatusUpdate(BaseModel):
-    status: Literal["pending_review", "verified", "rejected", "flagged", "tokenized", "listed"]
+    status: Literal["pending", "pending_review", "verified", "rejected", "flagged", "tokenized", "listed"]
 
 class KYCStatusUpdate(BaseModel):
     status: Literal["pending", "verified", "rejected"]

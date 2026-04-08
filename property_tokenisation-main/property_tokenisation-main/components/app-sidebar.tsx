@@ -122,12 +122,17 @@ interface AppSidebarProps {
   variant?: "investor" | "seller" | "admin"
 }
 
-export function AppSidebar({ variant = "investor" }: AppSidebarProps) {
+export function AppSidebar({ variant }: AppSidebarProps) {
   const [collapsed, setCollapsed] = useState(false)
   const pathname = usePathname()
   const router = useRouter()
   const { user, logout } = useAuth()
   const { disconnectWallet } = usePhantomWallet()
+
+  // Auto-detect variant from user role if not explicitly passed
+  const resolvedVariant: "investor" | "seller" | "admin" =
+    variant ??
+    (user?.role === "admin" ? "admin" : user?.role === "seller" ? "seller" : "investor")
 
   const handleLogout = () => {
     logout()
@@ -135,10 +140,10 @@ export function AppSidebar({ variant = "investor" }: AppSidebarProps) {
     router.push("/")
   }
 
-  const navigation = variant === "admin" 
-    ? adminNavigation 
-    : variant === "seller" 
-      ? sellerNavigation 
+  const navigation = resolvedVariant === "admin"
+    ? adminNavigation
+    : resolvedVariant === "seller"
+      ? sellerNavigation
       : investorNavigation
 
   return (

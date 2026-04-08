@@ -246,7 +246,7 @@ async def record_ownership_on_chain(wallet_address: str, property_id: str, token
               f"ownership_pda={ownership_pda} tx={tx}")
         return tx
     except Exception as e:
-        print(f"[Solana] buy_tokens failed (using mock): {e}")
+        print(f"[Solana] buy_tokens failed (using mock): {type(e).__name__}: {e}")
         import uuid
         tx = f"LOCAL_{uuid.uuid4().hex[:16].upper()}"
         print(f"[Solana] Mock tx: wallet={wallet_address[:8]}... "

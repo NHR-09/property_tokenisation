@@ -84,8 +84,12 @@ async def purchase_tokens(
         payment_id = f"crypto_{uuid.uuid4().hex[:12]}"
 
     # ── Record on blockchain ──────────────────────────────────────────────────
-    wallet = body.wallet_address or user.get("wallet_address") or "platform_escrow"
-    blockchain_tx = await record_ownership_on_chain(wallet, body.property_id, body.quantity)
+    wallet = body.wallet_address or user.get("wallet_address")
+    if not wallet or wallet == "platform_escrow":
+        from services.solana_service import _load_keypair
+        kp = _load_keypair()
+        wallet = str(kp.pubkey()) if kp else None
+    blockchain_tx = await record_ownership_on_chain(wallet or "platform_escrow", body.property_id, body.quantity)
 
     # ── Update Firestore ──────────────────────────────────────────────────────
     transaction_id = f"txn_{uuid.uuid4().hex[:16]}"
@@ -197,7 +201,11 @@ async def sell_tokens(
     now = datetime.utcnow()
 
     # ── Record sell on blockchain ─────────────────────────────────────────────
-    wallet = user.get("wallet_address") or "platform_escrow"
+    wallet = user.get("wallet_address")
+    if not wallet or wallet == "platform_escrow":
+        from services.solana_service import _load_keypair
+        kp = _load_keypair()
+        wallet = str(kp.pubkey()) if kp else "platform_escrow"
     ownership_pda = get_ownership_pda(wallet, property_id)
     blockchain_tx = f"SELL_{uuid.uuid4().hex[:16].upper()}"
 

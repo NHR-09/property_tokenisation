@@ -85,7 +85,7 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <AppSidebar variant="investor" />
+      <AppSidebar />
       
       <main className="pl-64 transition-all duration-300">
         <DashboardHeader 

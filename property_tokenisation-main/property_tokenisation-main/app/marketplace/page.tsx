@@ -44,10 +44,15 @@ export default function MarketplacePage() {
   const [filtersOpen, setFiltersOpen] = useState(false)
 
   useEffect(() => {
-    api.properties.list()
-      .then(setProperties)
-      .catch(() => setProperties([]))
-      .finally(() => setLoadingProps(false))
+    const fetchProps = () => {
+      api.properties.list()
+        .then(setProperties)
+        .catch(() => setProperties([]))
+        .finally(() => setLoadingProps(false))
+    }
+    fetchProps()
+    window.addEventListener("focus", fetchProps)
+    return () => window.removeEventListener("focus", fetchProps)
   }, [])
 
   const togglePropertyType = (type: string) => {

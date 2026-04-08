@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { AppSidebar } from "@/components/app-sidebar"
 import { DashboardHeader } from "@/components/dashboard-header"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -28,7 +29,9 @@ import {
   Coins,
   ClipboardCheck,
   User,
+  Loader2,
 } from "lucide-react"
+import { api } from "@/lib/api-client"
 
 const steps = [
   { id: 1, title: "Basic Details", icon: Building2 },
@@ -40,7 +43,10 @@ const steps = [
 ]
 
 export default function OnboardPropertyPage() {
+  const router = useRouter()
   const [currentStep, setCurrentStep] = useState(1)
+  const [submitting, setSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState("")
   const [formData, setFormData] = useState({
     // Basic Details
     propertyTitle: "",
@@ -86,6 +92,47 @@ export default function OnboardPropertyPage() {
   }
 
   const progressPercentage = ((currentStep - 1) / (steps.length - 1)) * 100
+
+  const handleSubmit = async () => {
+    setSubmitting(true)
+    setSubmitError("")
+    try {
+      const typeMap: Record<string, string> = {
+        commercial: "Commercial", office: "Office",
+        residential: "Residential", retail: "Retail", mixed: "Mixed-Use",
+      }
+      const cityMap: Record<string, string> = {
+        pune: "Pune", mumbai: "Mumbai", bangalore: "Bangalore",
+        hyderabad: "Hyderabad", delhi: "Delhi NCR",
+      }
+      const marketValue = parseFloat(formData.marketValue) || 0
+      const rentalIncome = parseFloat(formData.rentalIncome) || 0
+      const tokenPrice = parseFloat(formData.tokenPrice) || 0
+      const totalTokens = parseInt(formData.totalTokens) || 0
+      const retained = parseFloat(formData.retainedPercentage) || 20
+      const annualYield = marketValue > 0
+        ? parseFloat(((rentalIncome * 12 / marketValue) * 100).toFixed(2))
+        : 0
+
+      await api.properties.create({
+        title: formData.propertyTitle,
+        location: formData.address || formData.city,
+        city: cityMap[formData.city] || formData.city,
+        valuation: marketValue,
+        token_price: tokenPrice,
+        total_tokens: totalTokens,
+        seller_retained: retained,
+        annual_yield: annualYield,
+        property_type: typeMap[formData.propertyType] as any || "Commercial",
+        description: formData.description,
+      })
+      router.push("/seller?submitted=1")
+    } catch (err: any) {
+      setSubmitError(err.message || "Submission failed. Please try again.")
+    } finally {
+      setSubmitting(false)
+    }
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -592,14 +639,23 @@ export default function OnboardPropertyPage() {
                 Previous
               </Button>
 
+              {submitError && (
+                <p className="text-sm text-destructive">{submitError}</p>
+              )}
+
               {currentStep < steps.length ? (
                 <Button onClick={nextStep}>
                   Next
                   <ChevronRight className="ml-2 h-4 w-4" />
                 </Button>
               ) : (
-                <Button className="bg-[oklch(0.65_0.15_165)] hover:bg-[oklch(0.55_0.15_165)]">
-                  Submit for Review
+                <Button
+                  className="bg-[oklch(0.65_0.15_165)] hover:bg-[oklch(0.55_0.15_165)]"
+                  onClick={handleSubmit}
+                  disabled={submitting}
+                >
+                  {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {submitting ? "Submitting..." : "Submit for Review"}
                 </Button>
               )}
             </div>

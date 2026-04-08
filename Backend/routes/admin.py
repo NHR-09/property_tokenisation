@@ -74,6 +74,16 @@ async def update_property_status(
     if body.status == "listed":
         updates["verified"] = True
         updates["featured"] = True
+        # Auto-register on-chain when listing
+        from services.solana_service import mint_property_tokens, get_property_pda, check_pda_exists
+        pda = get_property_pda(property_id)
+        if not (pda and check_pda_exists(pda)):
+            prop = doc.to_dict()
+            await mint_property_tokens(
+                property_id,
+                prop.get("total_tokens", 1000),
+                int(prop.get("token_price", 5000) * 1e6),
+            )
 
     db.collection("properties").document(property_id).update(updates)
     return {"property_id": property_id, "status": body.status}

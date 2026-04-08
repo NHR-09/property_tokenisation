@@ -212,6 +212,59 @@ def seed_mock_data():
     return {"message": f"Seeded {len(seeded_ids)} properties", "ids": seeded_ids}
 
 
+# ── Price simulation (hackathon demo) ────────────────────────────────────────
+@app.post("/api/v1/simulate/price-tick", tags=["Dev"])
+def simulate_price_tick(volatility: float = 3.0):
+    """
+    Simulates a market price tick — randomly moves each property's token_price
+    by ±volatility% and updates all ownership records' current_price + P/L.
+    Call this during demo to show live price movement.
+    """
+    import random
+    from config import db
+    from google.cloud.firestore_v1.base_query import FieldFilter
+
+    props = list(db.collection("properties").where(
+        filter=FieldFilter("status", "in", ["listed", "verified"])
+    ).stream())
+
+    results = []
+    for doc in props:
+        p = doc.to_dict()
+        old_price = p.get("token_price", 5000)
+        # Random walk: ±volatility%
+        change_pct = random.uniform(-volatility, volatility) / 100
+        new_price = round(old_price * (1 + change_pct))
+        new_price = max(new_price, 100)  # floor at ₹100
+
+        doc.reference.update({"token_price": new_price})
+
+        # Update all ownership records for this property
+        ownership_docs = db.collection("ownership").where(
+            filter=FieldFilter("property_id", "==", doc.id)
+        ).stream()
+        for o in ownership_docs:
+            od = o.to_dict()
+            purchase_price = od.get("purchase_price", old_price)
+            tokens = od.get("tokens_owned", 0)
+            unrealized_pl = round((new_price - purchase_price) * tokens)
+            unrealized_pl_pct = round(((new_price - purchase_price) / purchase_price) * 100, 2) if purchase_price else 0
+            o.reference.update({
+                "current_price": new_price,
+                "unrealized_pl": unrealized_pl,
+                "unrealized_pl_percent": unrealized_pl_pct,
+            })
+
+        results.append({
+            "property": p.get("title"),
+            "old_price": old_price,
+            "new_price": new_price,
+            "change_pct": round(change_pct * 100, 2),
+        })
+
+    return {"ticked": len(results), "prices": results}
+
+
 @app.delete("/api/v1/seed/cleanup", tags=["Dev"])
 def cleanup_duplicate_properties():
     """Deletes all properties and re-seeds with exactly 6 unique ones."""

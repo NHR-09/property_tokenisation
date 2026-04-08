@@ -1,5 +1,7 @@
 "use client"
 
+import { useEffect, useState } from "react"
+import { useSearchParams } from "next/navigation"
 import { AppSidebar } from "@/components/app-sidebar"
 import { DashboardHeader } from "@/components/dashboard-header"
 import { StatCard } from "@/components/stat-card"
@@ -27,9 +29,18 @@ import {
   Plus,
 } from "lucide-react"
 import Link from "next/link"
-import { sellerProperties } from "@/lib/mock-data"
+import { api } from "@/lib/api-client"
+import type { SellerProperty } from "@/lib/api-client"
 
 export default function SellerDashboardPage() {
+  const searchParams = useSearchParams()
+  const [sellerProperties, setSellerProperties] = useState<SellerProperty[]>([])
+  const [submitted, setSubmitted] = useState(false)
+
+  useEffect(() => {
+    api.seller.properties().then(setSellerProperties).catch(() => {})
+    if (searchParams.get("submitted") === "1") setSubmitted(true)
+  }, [])
   const formatCurrency = (value: number) => {
     if (value >= 10000000) {
       return `₹${(value / 10000000).toFixed(2)} Cr`
@@ -90,6 +101,12 @@ export default function SellerDashboardPage() {
         />
 
         <div className="p-6 space-y-6">
+          {submitted && (
+            <div className="p-4 rounded-lg bg-[oklch(0.65_0.15_165)]/10 border border-[oklch(0.65_0.15_165)]/30 flex items-center justify-between">
+              <p className="text-sm font-medium text-[oklch(0.65_0.15_165)]">✅ Property submitted successfully! It will appear here once our admin reviews it.</p>
+              <Button variant="ghost" size="sm" onClick={() => setSubmitted(false)}>✕</Button>
+            </div>
+          )}
           {/* Summary Stats */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <StatCard
