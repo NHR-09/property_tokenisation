@@ -53,21 +53,24 @@ export default function GovernancePage() {
     const token = localStorage.getItem("access_token")
     setIsLoggedIn(!!token)
 
+    // proposals are public — no token needed
+    governance.proposals()
+      .then(setProposalList)
+      .catch(() => setProposalList(mockProposals as unknown as Proposal[]))
+      .finally(() => setLoading(false))
+
+    // holdings only needed if logged in
     if (token) {
-      governance.proposals()
-        .then(setProposalList)
-        .catch(() => setProposalList(mockProposals as unknown as Proposal[]))
-        .finally(() => setLoading(false))
       portfolio.holdings()
-        .then(setHoldings)
+        .then(h => {
+          setHoldings(h)
+          // calculate total voting power
+        })
         .catch(() => {})
-    } else {
-      setProposalList(mockProposals as unknown as Proposal[])
-      setLoading(false)
     }
   }, [])
 
-  const userVotingPower = 1500
+  const userVotingPower = holdings.reduce((acc, h) => acc + h.tokensOwned, 0)
   const activeProposals = proposalList.filter(p => p.status === "active")
   const closedProposals = proposalList.filter(p => p.status !== "active")
 
@@ -304,7 +307,7 @@ export default function GovernancePage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Cast Your Vote</DialogTitle>
-            <DialogDescription>{selectedProposal?.title}</DialogDescription>
+            <DialogDescription>{selectedProposal?.title} — Min. 5% ownership required</DialogDescription>
           </DialogHeader>
           <div className="py-4 space-y-4">
             <div className="p-4 rounded-lg bg-muted/50">
@@ -341,7 +344,7 @@ export default function GovernancePage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Create Proposal</DialogTitle>
-            <DialogDescription>You must own tokens in the property to create a proposal</DialogDescription>
+            <DialogDescription>You need at least 20% ownership in a property to create a proposal</DialogDescription>
           </DialogHeader>
           <div className="py-4 space-y-4">
             <div className="space-y-2">
@@ -355,11 +358,16 @@ export default function GovernancePage() {
                     <SelectValue placeholder="Select a property you own tokens in" />
                   </SelectTrigger>
                   <SelectContent>
-                    {holdings.map(h => (
-                      <SelectItem key={h.propertyId} value={h.propertyId}>
-                        {h.propertyTitle} — {h.tokensOwned} tokens
-                      </SelectItem>
-                    ))}
+                    {holdings.map(h => {
+                      const pct = h.tokensOwned && h.tokensOwned > 0
+                        ? ((h.tokensOwned / (h.tokensOwned / (h.unrealizedPLPercent || 1))) * 100)
+                        : 0
+                      return (
+                        <SelectItem key={h.propertyId} value={h.propertyId}>
+                          {h.propertyTitle} — {h.tokensOwned} tokens
+                        </SelectItem>
+                      )
+                    })}
                   </SelectContent>
                 </Select>
               ) : (
