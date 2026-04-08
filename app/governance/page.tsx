@@ -25,8 +25,9 @@ import {
   Vote, Clock, CheckCircle2, XCircle, AlertCircle,
   Building2, Users, Calendar, ThumbsUp, ThumbsDown, Plus,
 } from "lucide-react"
-import { governance, type Proposal } from "@/lib/api-client"
+import { governance, portfolio, type Proposal, type Holding } from "@/lib/api-client"
 import { proposals as mockProposals } from "@/lib/mock-data"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 export default function GovernancePage() {
   const [proposalList, setProposalList] = useState<Proposal[]>([])
@@ -46,6 +47,7 @@ export default function GovernancePage() {
   const [newProposal, setNewProposal] = useState({ property_id: "", title: "", description: "", end_date: "" })
   const [creating, setCreating] = useState(false)
   const [createError, setCreateError] = useState<string | null>(null)
+  const [holdings, setHoldings] = useState<Holding[]>([])
 
   useEffect(() => {
     const token = localStorage.getItem("access_token")
@@ -56,8 +58,10 @@ export default function GovernancePage() {
         .then(setProposalList)
         .catch(() => setProposalList(mockProposals as unknown as Proposal[]))
         .finally(() => setLoading(false))
+      portfolio.holdings()
+        .then(setHoldings)
+        .catch(() => {})
     } else {
-      // not logged in — show mock proposals read-only
       setProposalList(mockProposals as unknown as Proposal[])
       setLoading(false)
     }
@@ -341,12 +345,28 @@ export default function GovernancePage() {
           </DialogHeader>
           <div className="py-4 space-y-4">
             <div className="space-y-2">
-              <Label>Property ID</Label>
-              <Input
-                placeholder="Firestore property document ID"
-                value={newProposal.property_id}
-                onChange={e => setNewProposal(p => ({ ...p, property_id: e.target.value }))}
-              />
+              <Label>Property</Label>
+              {holdings.length > 0 ? (
+                <Select
+                  value={newProposal.property_id}
+                  onValueChange={v => setNewProposal(p => ({ ...p, property_id: v }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a property you own tokens in" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {holdings.map(h => (
+                      <SelectItem key={h.propertyId} value={h.propertyId}>
+                        {h.propertyTitle} — {h.tokensOwned} tokens
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <p className="text-sm text-muted-foreground p-3 rounded-lg bg-muted/50">
+                  You don't own tokens in any property yet. Buy tokens first to create a proposal.
+                </p>
+              )}
             </div>
             <div className="space-y-2">
               <Label>Title</Label>
